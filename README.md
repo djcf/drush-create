@@ -4,6 +4,8 @@ Provides tools for creating arbitrary nodes, entities, terms and vocabularies wi
 
 # Installation
 
+Add the file to your site's module directory.
+
 # Useage
 
 Create a vocabulary:

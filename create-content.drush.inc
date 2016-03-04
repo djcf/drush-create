@@ -232,8 +232,16 @@ function drush_create_content_command() {
       'verbose'=> 'Pretty-print the new node\'s details'
     ),
     'examples' => array(
-      'drush ctv' => 'Create the new node interactively.',
-      'drush ctv mynewvocab my_new_vocab --description="My new vocabulary"' => 'Create a new vocabulary with custom data',
+      'drush cnn' => 'Create the new node interactively.',
+      'drush cnn newnode 100 \
+        --language=LANGUAGE_NONE \
+        --comments=2 \
+        --status=1 \
+        --sticky=0 \
+        --promote=0 \
+        --body="Hello, world" \
+        --input_format="filtered_html", \
+        --verbose' => 'Create a new node with custom data',
     )
   );
 
