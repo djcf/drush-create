@@ -34,26 +34,55 @@ function drush_createcontent_create_term($name=null, $vid=null) {
   $term = new stdClass();
   $term->description = drush_get_option('description', null);
 
-  if (!$name) {
+  if (!$vid) {
     $name = drush_prompt(dt('Please enter the name for your new term'));
     $term->description = drush_prompt(dt('Please enter a description for your new term'));
+    $vid = drush_prompt(dt('Please enter the ID of the vocabulary your new term will belong to or its unique machine name'));
   }
-  while (!is_numeric($vid)) {
-    $vid = drush_prompt(dt('Please enter the ID of the vocabulary your new term will belong to'));
-  }
+
+  do {
+    if (is_numeric($vid)) {
+      $vocabulary = taxonomy_vocabulary_load($vid);
+    } else {
+      $vocabulary = taxonomy_vocabulary_machine_name_load($vid);
+    }
+    if (!$vocabulary) {
+      dt("There is no vocabulary like that in the system.");
+      $vid = drush_prompt(dt('Please enter a valid vocabulary ID or a valid vocabulary machine name.'));
+    }
+  } while (!$vocabulary);
 
   $term->name = $name;
-  $term->vid = $vid;
-  $term->parent = drush_get_option('p');
+  $term->vid = $vocabulary->vid;
+  $term->parent = drush_get_option('parent');
 
-  taxonomy_term_save($term);
+  // Does the term exist already? Don't create it again.
+  $term_exists = false;
+  $term_tree = taxonomy_get_tree($vocabulary->vid);
+  // TODO : replace with closure
+  foreach($term_tree as $tt) {
+    if ($tt->name == $term->name) {
+      $term_exists = true;
+      break;
+    }
+  }
 
-  if (drush_get_option('verbose', false)) {
-    drush_log("Your new term named $name has tid #" . $term->tid, 'ok');
-  }  elseif (drush_get_option('auto', false)) {
-    echo $term->tid;
-  } elseif (!drush_get_option('quiet', false)) {
-    drush_log($term->tid, 'ok');
+  if(!$term_exists) {
+    taxonomy_term_save($term);
+
+    if (drush_get_option('verbose', false)) {
+      drush_log("Your new term named $name has tid #" . $term->tid, 'ok');
+    }  elseif (drush_get_option('auto', false)) {
+      echo $term->tid;
+    } elseif (!drush_get_option('quiet', false)) {
+      drush_log($term->tid, 'ok');
+    }
+  } else {
+    if (drush_get_option('auto', false)) {
+      echo $term->tid;
+    } elseif (!drush_get_option('quiet', false)) {
+        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #" . $term->tid, 'error');
+    }
   }
 }
 
@@ -239,7 +268,7 @@ function createcontent_drush_command() {
       'input_format' => 'Input format for the body of the node',
       'summary' => 'Summary for the body of the node',
       'quiet' => 'Don\'t make any noice if successful',
-      'verbose'=> 'Pretty-print the new node\'s details'
+      'verbose'=> 'Pretty-print the new node\'s details',
       'auto' => 'Prints only the nID when run',
     ),
     'examples' => array(
