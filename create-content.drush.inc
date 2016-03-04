@@ -27,6 +27,16 @@ function drush_createcontent_create_vocabulary($name=null, $machine_name=null) {
   }
 }
 
+// Does the term exist already? Don't create it again.
+function term_exists($term_name, $vocabulary) {
+  foreach(taxonomy_get_tree($vocabulary->vid) as $term) {
+    if ($term->name == $term_name) {
+      return $term;
+    }
+  }
+  return false;
+}
+
 /**
  * Create a taxonomy term and return the tid.
  */
@@ -56,18 +66,7 @@ function drush_createcontent_create_term($name=null, $vid=null) {
   $term->vid = $vocabulary->vid;
   $term->parent = drush_get_option('parent');
 
-  // Does the term exist already? Don't create it again.
-  $term_exists = false;
-  $term_tree = taxonomy_get_tree($vocabulary->vid);
-  // TODO : replace with closure
-  foreach($term_tree as $tt) {
-    if ($tt->name == $term->name) {
-      $term_exists = true;
-      break;
-    }
-  }
-
-  if(!$term_exists) {
+  if(!term_exists($name, $vocabulary)) {
     taxonomy_term_save($term);
 
     if (drush_get_option('verbose', false)) {
@@ -79,9 +78,9 @@ function drush_createcontent_create_term($name=null, $vid=null) {
     }
   } else {
     if (drush_get_option('auto', false)) {
-      echo $term->tid;
+      echo term_exists($term->name, $vocabulary)->tid;
     } elseif (!drush_get_option('quiet', false)) {
-        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #" . $term->tid, 'error');
+        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #" . term_exists($term->name, $vocabulary)->tid, 'error');
     }
   }
 }
@@ -287,4 +286,3 @@ function createcontent_drush_command() {
 
   return $items;
 }
-
