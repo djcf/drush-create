@@ -194,6 +194,7 @@ function createcontent_drush_command() {
       'description' => 'A description for the new term',
       'parent_id' => 'The term ID for the parent of this new term',
       'quiet' => 'Don\'t make any noice if successful',
+      'auto' => 'Prints only the tiD when run',
       'verbose'=> 'Pretty-print the new term ID'
     ),
     'examples' => array(
@@ -212,6 +213,7 @@ function createcontent_drush_command() {
     'options' => array(
       'description' => 'A description for the new vocabulary',
       'quiet' => 'Don\'t make any noice if successful',
+      'auto' => 'Prints only the vID when run',
       'verbose'=> 'Pretty-print the new term ID'
     ),
     'examples' => array(
@@ -238,6 +240,7 @@ function createcontent_drush_command() {
       'summary' => 'Summary for the body of the node',
       'quiet' => 'Don\'t make any noice if successful',
       'verbose'=> 'Pretty-print the new node\'s details'
+      'auto' => 'Prints only the nID when run',
     ),
     'examples' => array(
       'drush cnn' => 'Create the new node interactively.',
