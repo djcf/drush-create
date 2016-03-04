@@ -16,8 +16,26 @@ This function prints the new vID. Use it to create a term for your new vocab:
 
 This function prints the new tID. Now create a node:
 
+    drush cnn newnode 100 \
+	--language=LANGUAGE_NONE \
+	--comments=2 \
+	--status=1 \
+	--sticky=0 \
+	--promote=0 \
+	--body="Hello, world" \
+	--input_format="filtered_html", \
+	--verbose
 
+You can also run each command interactively, which is currently the only way to add entity- and field-references.
 
 # TODO
 
-Provide a mechanism for content types and other entities. For fields, use drush-field-create.
+* Provide a mechanism to create content types and other entities. For fields, use drush-field-create.
+
+* Provide a way to see possible answers in interactive mode
+
+* Provide a way to add entity- and field-references, and field content when creating nodes in batch mode.
+
+* Add fields to vocabularies and field content to terms?
+
+I am looking for people to help maintain this project. Please submit an issue to get involved.

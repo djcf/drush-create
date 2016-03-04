@@ -17,7 +17,7 @@ function drush_create_vocabulary($name=null, $machine_name=null) {
 
   taxonomy_vocabulary_save($vocabulary);
 
-  if (drush_get_option('verbose', false) {
+  if (drush_get_option('verbose', false)) {
     dt("Your new vocabulary named $name has vid #" . $vocabulary->vid);
   } elseif (!drush_get_option('quiet', false)) {
     dt($vocabulary->vid);
@@ -31,10 +31,8 @@ function drush_create_term($name=null, $vid=null) {
   if (!$name) {
     $name = drush_choice(dt('Please enter the name for your new term: '));
   }
-  if (!$vid) {
-    while (!is_numeric($vid)) {
-      $vid = drush_choice(dt('Please enter the ID of the vocabulary your new term will belong to: '));
-    }
+  while (!is_numeric($vid)) {
+    $vid = drush_choice(dt('Please enter the ID of the vocabulary your new term will belong to: '));
   }
 
   $term = new stdClass();
@@ -46,7 +44,7 @@ function drush_create_term($name=null, $vid=null) {
 
   taxonomy_term_save($term);
 
-  if (drush_get_option('verbose', false) {
+  if (drush_get_option('verbose', false)) {
     dt("Your new term named $name has tid #" . $term->tid);
   } elseif (!drush_get_option('quiet', false)) {
     dt($term->tid);
@@ -57,54 +55,87 @@ function drush_create_term($name=null, $vid=null) {
  * Create a taxonomy term and return the tid.
  */
 function drush_create_node($title=null, $node_type=null, $uid=null) {
-  $node = new stdClass();
-
+  $node = new stdClass();    
   if (!$uid) {
     $interactive = true;
     $name = drush_choice(dt('Please enter the name of your new node: '));
     $node_type = drush_choice(dt('Please enter the content type for your new node: '));
-    while (!is_numeric($uid)) {
-      $vid = drush_choice(dt('Please enter the uID of the user who created the new node: '));
-    }
-    $boolean_options = array('No', 'Yes');
     $node->language = drush_choice(dt('Enter the node language or <enter> for LANGUAGE_NONE: '));
-    $node->comment = drush_choice(array('Comments disabled', 'Read-only', 'Read/write'), dt('Are comments on the node enabled?: '));
+
+    // Unfortunately drush interprets 0 as cancel so we have to present every 0-possible choice as indexed from 1
+    $boolean_options = array(1=> 'No', 'Yes');
+    $trichoice = array(1=>'Comments disabled', 'Read-only', 'Read/write');
+
+    $node->comment = drush_choice($trichoice, dt('Are comments on the node enabled?: '));
     $node->status = drush_choice($boolean_options, dt('Is the node published or still a draft?: '));
     $node->promote = drush_choice($boolean_options, dt('Is the node promoted to the front page?: '));
+    $node->sticky = drush_choice($boolean_options, dt('Is the node stickied at the top of lists?: '));
 
-    $user_prompt = "y"
-    while ($user_prompt == "y")) {
-      $user_prompt = drush_choice(dt('Would you like to enter a new term reference (taxonomy) field? You will need to know the term ID and the field machine name. (Enter \'y\' if so:)'));
-      if ($user_prompt == "y") {
-        $field_name = drush_choice(dt('Enter the field\'s machine name (e.g. \'field_machine_name\')'));
-        $tid = null;
-        while (!is_numeric($tid)) {
-          $tid = drush_choice(dt('Enter the term ID: '));
-        }
-        $node->$field_name[$node->language][]['tid'] = $tid
-      }
+    // See l71. Now we shift the index down, back to 0.
+    foreach (array('comment', 'status', 'promote', 'sticky') as $x) {
+      $node->$x--;
     }
 
-    $user_prompt = "y"
-    while ($user_prompt == "y")) {
-      $user_prompt = drush_choice(dt('Would you like to enter a new entity reference (node) field? You will need to know the node ID, it\'s content type, and the machine name of the reference field. (Enter \'y\' if so:)'));
+    $user_prompt = drush_choice(dt('Would you like to enter a body for the new node? Enter \'y\' if so: '));
+    if ($user_prompt == "y") {
+      $value = drush_choice(dt('Enter the text for the body of the new node: '));
+      $format = drush_choice(dt('What format is the body in? (e.g. \'filtered_html\', \'full_html\', etc.): '));
+      $safe_value = "<p>$value</p>";
+      $summary = $safe_summary = null;
+      $user_prompt = drush_choice(dt('Would you like to enter a summary for the body of the new node? Enter \'y\' if so: '));
       if ($user_prompt == "y") {
-        $target_id = null;
-        while (!is_numeric($target_id)) {
+        $summary = drush_choice(dt('Enter the text for the summary for the body of the new node: '));
+        $safe_summary = "<p>$safe_summary</p>";
+      }
+      $node->body[$node->language][0] = compact($value, $summary, $format, $safe_value, $safe_summary);
+    }
+
+    $user_prompt = drush_choice(dt('Would you like to enter a new field? You will need to know the field machine name and the names of any properties it expects. (Enter \'y\' if so:)'));
+    while ($user_prompt == "y") {
+      $field_name = drush_choice(dt('Enter the field\'s machine name (e.g. \'field_machine_name\')'));
+      $field = array();
+      do {
+        $property = drush_choice(dt("Enter the name for a property of '$field_name', e.g.: 'value\', 'summary\', 'format', etc.: "));
+        $value = drush_choice(dt("Enter the value for the property '$property' of '$field_name': "));
+        $field[$property] = $value;
+        $user_prompt = drush_choice(dt('Would you like to enter another property and value for $field_name?'));
+      } while ($user_prompt=='y');
+      array_push($node->$field_name[$node->language], $field);
+      $user_prompt = drush_choice(dt('Would you like to enter another field?'));
+    };
+
+    $user_prompt = drush_choice(dt('Would you like to enter a new term reference (taxonomy) field? You will need to know the term ID and the field machine name. (Enter \'y\' if so:)'));
+    while ($user_prompt == "y") {
+      $field_name = drush_choice(dt('Enter the field\'s machine name (e.g. \'field_machine_name\')'));
+      do {
+        $tid = drush_choice(dt('Enter the term ID: '));
+      } while (!is_numeric($tid));
+      array_push($node->$field_name[$node->language], array('tid' =>$tid));
+
+      $user_prompt = drush_choice(dt('Would you like to enter another?'));
+    }
+
+    $user_prompt = drush_choice(dt('Would you like to enter a new entity reference (node) field? You will need to know the node ID, it\'s content type, and the machine name of the reference field. (Enter \'y\' if so:)'));
+    while ($user_prompt == "y") {
+        do {
           $target_id = drush_choice(dt('Enter the target\'s nID: '));
-        }
+        } while (!is_numeric($target_id));
         $field_name = drush_choice(dt('Enter the entity reference\'s field machine name (e.g. \'field_machine_name\')'));
         $target_type = drush_choice(dt('Enter the target\'s content target type (e.g. \'node\' is default, other possible values are \'user\' and \'taxonomy_term\': '));    
-        $node->$field_name[$node->language][] = array(
+        array_push($node->$field_name[$node->language], array(
           'target_id' => $target_id,
           'target_type' => $target_type
-        );
-      }
-    }
+        ));
 
+      $user_prompt = drush_choice(dt('Would you like to enter another?'));
+    }
   } else {
     $interactive = false;
   }
+  while (!is_numeric($uid)) {
+    $vid = drush_choice(dt('Please enter the uID of the user who created the new node: '));
+  }
+
 
   $node->title = $title;
   $node->uid = $uid;
@@ -113,17 +144,28 @@ function drush_create_node($title=null, $node_type=null, $uid=null) {
   node_object_prepare($node);
 
   if (!$interactive) {
-    $node->language = drush_get_option('description', LANGUAGE_NONE);
+    $node->language = drush_get_option('language', LANGUAGE_NONE);
     $node->comment = drush_get_option('comments', 2);
     $node->status = drush_get_option('status', 1);
-    $node->promote = drush_get_option('promote', 0);
+    $node->promote = drush_get_option('promoted', 0);
+    $node->sticky = drush_get_option('sticky', 0);
+    $value = drush_get_option('body', null);
+    if ($value) {
+      $summary = drush_get_option('summary', '');
+      $format = drush_get_option('input_format', 'filtered_html');
+      $safe_value = "<p>$value</p>";
+      $node->body[$node->language][0] = compact($value, $summary, $format, $safe_value);
+    }
   }
 
   $node = node_submit($node); // prepare for saving
   node_save($node);
   
-  if (drush_get_option('verbose', false) {
-    dt("Your new node named $title has been created with nID #" . $node->nid);
+  if (drush_get_option('verbose', false)) {
+    dt("Your new node named $title has been created with nID #" . $node->nid . ' and the following properties: ');
+    foreach (array($node) as $key=>$value) {
+      dt(" *    $key: $value");
+    }
   } elseif (!drush_get_option('quiet', false)) {
     dt($node->nid);
   }
@@ -178,9 +220,16 @@ function drush_create_content_command() {
       'uid' => 'The user who created the node.'
     ),
     'options' => array(
-      'description' => 'A description for the new vocabulary',
+      'language' => 'The language for your new node or LANGUAGE_NONE if unspecified',
+      'comments' => 'Whether comments should be enabled or not: 0 for disabled, 1 for read-only and 2 for read/write which is the default option.',
+      'status' => 'Whether the node is published or still a draft: 0 for draft, 1 for published.',
+      'sticky' => 'Whether the node is promoted to the top of lists: 0 for not stickied, 1 for always appears at the top of lists.',
+      'promote' => 'Whether the node is promoted to the front page or not; 0 for unpromoted (default) or 1 for promoted.',
+      'body' => 'Contents of the body field for the node',
+      'input_format' => 'Input format for the body of the node',
+      'summary' => 'Summary for the body of the node',
       'quiet' => 'Don\'t make any noice if successful',
-      'verbose'=> 'Pretty-print the new term ID'
+      'verbose'=> 'Pretty-print the new node\'s details'
     ),
     'examples' => array(
       'drush ctv' => 'Create the new node interactively.',
