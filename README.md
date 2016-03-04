@@ -4,7 +4,15 @@ Provides tools for creating arbitrary nodes, entities, terms and vocabularies wi
 
 # Installation
 
-Add the file to your site's module directory.
+Add the file to your site's module directory. For example:
+
+    mkdir -p sites/all/drush
+    curl "https://raw.githubusercontent.com/djcf/drush-create/master/create-content.drush.inc" > sites/all/drush/create-content.drush.inc
+
+Or put it where drush will be able to find it for all sites:
+
+    mkdir -p /usr/share/drush/commands
+    curl "https://raw.githubusercontent.com/djcf/drush-create/master/create-content.drush.inc" > /usr/share/drush/commands/create-content.drush.inc
 
 # Useage
 
@@ -33,6 +41,8 @@ This function prints the new tID. Now create a node:
 	--verbose
 
 You can also run each command interactively, which is currently the only way to add entity- and field-references.
+
+For all commands you can specify --auto, which means that only the new ID will be printed. This is excellent for running as a sub-process for some other operation.
 
 # TODO
 
