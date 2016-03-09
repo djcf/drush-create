@@ -71,9 +71,9 @@ function drush_createcontent_create_term($name=null, $vid=null) {
   $term->vid = $vocabulary->vid;
   $term->parent = drush_get_option('parent');
 
-  $exiting_term_id = term_exists($term->name, $vocabulary)->tid;
+  $existing_term_id = term_exists($term->name, $vocabulary)->tid;
 
-  if(!$exiting_term_id) {
+  if(!$existing_term_id) {
     taxonomy_term_save($term);
 
     if (drush_get_option('verbose', false)) {
@@ -86,11 +86,11 @@ function drush_createcontent_create_term($name=null, $vid=null) {
     return $term->tid;
   } else {
     if (drush_get_option('auto', false)) {
-      echo $exiting_term_id;
+      echo $existing_term_id;
     } elseif (!drush_get_option('quiet', false)) {
-        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #$exiting_term_id.", 'error');
+        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #$existing_term_id.", 'ok');
     }
-    return $exiting_term_id;
+    return $existing_term_id;
   }
 }
 
@@ -366,7 +366,7 @@ function createcontent_drush_command() {
       'nid' => 'You can specify the node ID before it is created. However the Node ID must not already exist.',
       'created' => 'Specify the time the node was created as a unix timestamp. Defaults to now()',
       'changed' => 'Specify the time the node was last updated as a unix timestamp. Defaults to created.',
-      'vocabularies' => 'Specify a colon-delimited comma-separated map of field_ids and vocabularies for the new node',
+      'vocabularies' => 'Specify a comma-separated list of vocabularies for the new node',
       '$vocabulary_machine_name' => 'Specify a comma-separated list of term names or term IDs associated with the $vocabulary_machine_name',
       'references' => 'Specify a comma-separated list of entity reference field names for the new node',
       '$reference_node_id' => 'Specify a comma-separated list of node IDs associated with the entity $reference',
