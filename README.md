@@ -30,7 +30,9 @@ This function prints the new vID. Use it to create a term for your new vocab:
 
 This function prints the new tID. Now create a node:
 
-    drush cnn newnode 100 \
+    drush cnn article \
+	--title="foo"
+	--author=1
 	--language=LANGUAGE_NONE \
 	--comments=2 \
 	--status=1 \
@@ -40,9 +42,33 @@ This function prints the new tID. Now create a node:
 	--input_format="filtered_html", \
 	--verbose
 
-You can also run each command interactively, which is currently the only way to add entity- and field-references.
+Adding custom fields in batch mode is a little trickier.
 
-For all commands you can specify --auto, which means that only the new ID will be printed. This is excellent for running as a sub-process for some other operation.
+Using the --vocabularies option, specify a colon-delimitted map of the field machine name and the vocabulary machine name, separated by commas like so:
+
+    drush cnn article --vocabularies=field_x:vocab_x,field_y:vocab_y,field_z:vocab_z ...
+
+You can now add the taxonomy terms using either their existing tid or their name. Terms will be created automatically if they do not exist already:
+
+    drush cnn article --vocabularies=field_x:vocab_x,field_y:vocab_y,field_z:vocab_z \
+	--field_x:a,b,c
+	--field_y:x,y,z
+	--field_z:foo,bar,baz
+	--strict=0
+
+You **must** append "--strict=0" to prevent drush from complaining about your arbitrary --field_x options.
+
+You can add entity references in a similar way, however the options must be node IDs:
+
+    drush cnn article --references=field_x,field_y,field_z \
+	--field_x:1,2,3
+	--field_y:4,5,6
+	--field_z:7,8,9
+	--strict=0
+
+If the node with --nid=x already exists, the existing node will be automatically updated with the new content.
+
+For all commands you can specify --auto, which means that only the new ID will be printed. If the term or vocabulary already exists, no error is produced, but the old ID is still output. This is excellent for running as a sub-process for some other operation.
 
 # TODO
 
@@ -50,8 +76,6 @@ For all commands you can specify --auto, which means that only the new ID will b
 
 * Provide a way to see possible answers in interactive mode
 
-* Provide a way to add entity- and field-references, and field content when creating nodes in batch mode.
-
-* Add fields to vocabularies and field content to terms?
+* Add field content to terms?
 
 I am looking for people to help maintain this project. Please submit an issue to get involved.
