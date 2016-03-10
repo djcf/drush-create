@@ -1,8 +1,8 @@
 <?php
 function make_ints($val) {
-    if (is_array($val)) {
-      return array_map($val);
-    }
+  if (is_array($val)) {
+    return array_map('make_ints', $val);
+  }
   return is_numeric($val) ? intval($val) : $val;
 }
 

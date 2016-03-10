@@ -19,6 +19,7 @@ class NodeFactory {
     if (!$this->entity) {
       $this->entity = entity_create('node', $values);
       $this->entity_wrapper = entity_metadata_wrapper('node', $this->entity);
+      #$this->entity_wrapper->save();
     }
     return $this->entity_wrapper;
   }
@@ -40,10 +41,7 @@ class NodeFactory {
       while (!is_numeric($node_values['nid'])) {
         $node_values['nid'] = drush_prompt(dt('Please enter a numeric node ID'));
       }
-    }
-
-    $node_values['is_new'] = true;
-    if (isset($node_values['nid'])) {
+      $node_values['is_new'] = true;
       if (node_load($node_values['nid'])) {
         $node_values['is_new'] = false;
         if (!(drush_get_option('auto', false) || drush_get_option('quiet', false))) {
