@@ -13,6 +13,14 @@ class NodeFactory {
     return $this->get_entity();
   }
 
+  public static function get_factory($node_type=null) {
+    return $node_type ? new AutomatedNodeFactory($node_type) : new InteractiveNodeFactory();
+  }
+
+  public static function get_node_wrapper($node_type=null) {
+    return NodeFactory::get_factory($node_type)->get_entity();
+  }
+
   function get_field_references() {}
 
   function get_entity($values=null) {
@@ -22,13 +30,6 @@ class NodeFactory {
       #$this->entity_wrapper->save();
     }
     return $this->entity_wrapper;
-  }
-
-  function set_field_reference($field_name, $value) {
-    if (!is_array($this->get_entity()->$field_name->raw())) {
-      $value = $value[0];
-    }
-    $this->get_entity()->$field_name->set(make_ints($value));
   }
 
   function get_options($node_type) {
@@ -63,9 +64,46 @@ class NodeFactory {
 
     return $node_values;
   }
+
+  function set_field_reference($field_name, $value) {
+    if (is_array($this->get_entity()->$field_name->raw()) && !is_array($value)) {
+      $value = array($value);
+    } elseif (!is_array($this->get_entity()->$field_name->raw()) && is_array($value)) {
+      $value = $value[0];
+    }
+    $this->get_entity()->$field_name->set($value);
+  }
 }
 
 class AutomatedNodeFactory extends NodeFactory {
+  function get_field_references() {
+    foreach(drush_get_option_list('vocabularies', array()) as $vocabularystr) {
+      $terms = array();
+      $vocabulary_map = explode(":", $vocabularystr);
+      $field_name = $vocabulary_map[0];
+      $vocabulary_name = $vocabulary_map[1];
+      foreach(drush_get_option_list($field_name, array()) as $term_identifier) {
+        $term_id = is_numeric($term_identifier) ? $term_identifier : drush_createcontent_create_term(trim(urldecode($term_identifier)), $vocabulary_name, true);
+        $terms[] = $term_id;
+      }
+      if(sizeof($terms)>0) {
+        $this->set_field_reference($field_name, $terms);
+      } else {
+        drush_log("Could not find any terms for term reference field $field_name in supplied arguments.", "error");
+        echo "Make sure a comma-separated list of terms from the taxonomy named '$vocabulary_name' is appended, like this: --$field_name=term1,term2,etc";
+      }
+    }    
+
+    foreach(drush_get_option_list('fields', array()) as $field_name) {
+      $fields = array();
+      foreach(drush_get_option_list($field_name, array()) as $field_value) {
+        $fields[] = $field_value;
+      }
+      if (sizeof($fields)>0) {
+        $this->set_field_reference($field_name, $fields);
+      }
+    }
+  }
   function get_options($node_type) {
     $node_values = parent::get_options($node_type);
     $node_values['created'] = drush_get_option('created', time());
@@ -98,28 +136,7 @@ class AutomatedNodeFactory extends NodeFactory {
     }
     return null;
   }
-  
-  function get_field_references() {
-    foreach(drush_get_option_list('vocabularies', array()) as $vocabularystr) {
-      $terms = array();
-      $vocabulary_map = explode(":", $vocabularystr);
-      $field_name = $vocabulary_map[0];
-      $vocabulary_name = $vocabulary_map[1];
-      foreach(drush_get_option_list($field_name, array()) as $tid) {
-        $term_id = is_numeric($tid) ? $tid : drush_createcontent_create_term(trim(urldecode($tid)), $vocabulary_name, true);
-        $terms[] = $term_id;
-      }
-      $this->set_field_reference($field_name, $terms);
-    }    
 
-    foreach(drush_get_option_list('fields', array()) as $field_name) {
-      $fields = array();
-      foreach(drush_get_option_list($field_name, array()) as $field_value) {
-        $fields[] = $field_value;
-      }
-      $this->set_field_reference($field_name, $fields);
-    }
-  }
 }
 
 class InteractiveNodeFactory extends NodeFactory {

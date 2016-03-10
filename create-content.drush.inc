@@ -39,8 +39,7 @@ function drush_createcontent_create_vocabulary($name=null, $machine_name=null, $
  * Create a taxonomy term and return the tid.
  */
 function drush_createcontent_create_node($node_type=null) {
-  $node_factory = $node_type ? new AutomatedNodeFactory($node_type) : new InteractiveNodeFactory();
-  $node = $node_factory->get_entity();
+  $node = NodeFactory::get_node_wrapper($node_type);
   $node->save();
 
   $actioned = $node->is_new->value() ? "created" : "updated";
