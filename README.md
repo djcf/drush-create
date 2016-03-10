@@ -60,7 +60,7 @@ You **must** append "--strict=0" to prevent drush from complaining about your ar
 
 You can add entity references in a similar way, however the options must be node IDs:
 
-    drush cnn article --references=field_x,field_y,field_z \
+    drush cnn article --fields=field_x,field_y,field_z \
 	--field_x:1,2,3
 	--field_y:4,5,6
 	--field_z:7,8,9

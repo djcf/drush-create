@@ -1,9 +1,9 @@
 <?php
 function make_ints($val) {
-    if (is_array($value)) {
-      return array_map($value);
+    if (is_array($val)) {
+      return array_map($val);
     }
-	return is_numeric($value) ? intval($value) : $value;
+  return is_numeric($val) ? intval($val) : $val;
 }
 
 // Does the term exist already? Don't create it again.
@@ -17,8 +17,5 @@ function term_exists($term_name, $vocabulary) {
 }
 
 function user_prompt($msg) {
-  user_prompt() = drush_prompt(dt($msg . " (Enter 'y' if so)"));
-  if (user_prompt()=="y")
-    return true;
-  return false;
+  return (drush_prompt(dt($msg . " (Enter 'y' if so)")) == "y");
 }
