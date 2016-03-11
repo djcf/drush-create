@@ -19,3 +19,14 @@ function term_exists($term_name, $vocabulary) {
 function user_prompt($msg) {
   return (drush_prompt(dt($msg . " (Enter 'y' if so)")) == "y");
 }
+
+function fix_date($nid, $changed) {
+  db_query(
+      'UPDATE {node} 
+      SET changed=:changed 
+      WHERE nid=:nid', 
+    array(
+      ':changed'=>$changed,
+      ':nid'=>$nid
+    ));
+}

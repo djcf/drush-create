@@ -25,9 +25,21 @@ class NodeFactory {
 
   function get_entity($values=null) {
     if (!$this->entity) {
-      $this->entity = entity_create('node', $values);
-      $this->entity_wrapper = entity_metadata_wrapper('node', $this->entity);
-      #$this->entity_wrapper->save();
+      if (isset($values['is_new']) && $values['is_new']===false) {
+        $this->entity = node_load($values['nid']);
+        $this->entity_wrapper = entity_metadata_wrapper('node', $this->entity);
+        $cant_update = array('nid', 'is_new', 'uid', 'changed', 'revision_timestamp');
+        foreach($values as $key=>$val) {
+          #echo "Updating $key (" . gettype($key) . ") with $val (" . gettype($val) . ")";
+          if (!in_array($key, $cant_update)) {
+            $this->entity_wrapper->$key->set($val);
+          }
+        }
+        # Fix for cant update changed field using entity api:
+      } else {
+        $this->entity = entity_create('node', $values);
+        $this->entity_wrapper = entity_metadata_wrapper('node', $this->entity);
+      }
     }
     return $this->entity_wrapper;
   }
@@ -36,15 +48,14 @@ class NodeFactory {
     $node_values = array();
     $node_values['nid'] = drush_get_option('nid', null);
     if (!$node_values['nid']) {
-      unset($node_values['nid']);
-      unset($node_values['vid']);
+      unset($node_values['nid']); // no $nid? $nid not defined: meaning node is new.
     } else {
       while (!is_numeric($node_values['nid'])) {
         $node_values['nid'] = drush_prompt(dt('Please enter a numeric node ID'));
       }
-      $node_values['is_new'] = true;
+      $node_values['is_new'] = true; // is_new? $nid is defined and node is new: backdate
       if (node_load($node_values['nid'])) {
-        $node_values['is_new'] = false;
+        $node_values['is_new'] = false; // ! $is_new? $nid is defined and node is not new: update
         if (!(drush_get_option('auto', false) || drush_get_option('quiet', false))) {
           drush_log("A node with nID #" . $node_values['nid'] . " already exists in the database.");
           if (!$node_type && !user_prompt('Would you like to overwrite/update the existing node with new data?')) {

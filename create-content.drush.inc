@@ -41,6 +41,7 @@ function drush_createcontent_create_vocabulary($name=null, $machine_name=null, $
 function drush_createcontent_create_node($node_type=null) {
   $node = NodeFactory::get_node_wrapper($node_type);
   $node->save();
+  fix_date($node->nid->value(), drush_get_option('created'), drush_get_option('created'));
 
   $actioned = $node->is_new->value() ? "created" : "updated";
   if (drush_get_option('verbose', false)) {
@@ -107,6 +108,19 @@ function drush_createcontent_create_term($name=null, $vid=null) {
   }
 }
 
+function drush_createcontent_get_empty_nids($limit=null) {
+  if(!$limit) {
+    $limit = drush_prompt(dt("Enter an upper limit"));
+  }
+  $empties = array();
+  for($i=1;$i<$limit;$i++) {
+    if (!node_load($i)) {
+      $empties[] = $i;
+    }
+  }
+  print_r($empties);
+}
+
 /**
  * Implements hook_drush_command().
  */
@@ -131,6 +145,17 @@ function createcontent_drush_command() {
     ),
   );
 
+  $items['get_empty_nids'] = array(
+    'description' => 'Hack to get the list of empty IDs between nodes where new nodes could be inserted.',
+    'aliases' => array('gempts'),
+    'arguments' => array(
+      'limit' => 'the upper limit'
+    ),
+    'examples'=>array(
+      'drush gempts 5' => 'Get the empties between 1 and 5'
+    )
+  );
+
   $items['create-vocabulary'] = array(
     'description' => 'Create a new taxonomy vocabulary given a name for the new vocabulary and a machine name. Returns the vID of the new vocabulary.',
     'aliases' => array('ctv'),
@@ -152,12 +177,13 @@ function createcontent_drush_command() {
 
   $items['create-node'] = array(
     'description' => 'Create a new content node given a name for the new vocabulary and a machine name. Returns the nID of the new node.',
+    'drupal_dependencies' => array('entity'),
     'aliases' => array('cnn'),
     'arguments' => array(
       'type' => 'The content-type of the new node',
     ),
     'options' => array(
-      'uid' => 'The user ID of the user who created the node. Defaults to 1.',
+       'uid' => 'The user ID of the user who created the node. Defaults to 1.',
       'title' => 'The title of the new node',
       'language' => 'The language for your new node or LANGUAGE_NONE if unspecified',
       'comments' => 'Whether comments should be enabled or not. 0 for disabled, 1 for read-only and 2 for read/write which is the default option.',
@@ -175,7 +201,6 @@ function createcontent_drush_command() {
       '$vocabulary_machine_name' => 'Specify a comma-separated list of term names or term IDs associated with the $vocabulary_machine_name',
       'references' => 'Specify a comma-separated list of entity reference field names for the new node',
       '$reference_node_id' => 'Specify a comma-separated list of node IDs associated with the entity $reference',
-      'revision_timestamp' => 'Specify the last revision. Defaults to changed.',
       'verbose'=> 'Pretty-print the new node\'s details',
       'auto' => 'Prints only the nID when run',
     ),
