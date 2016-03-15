@@ -57,7 +57,7 @@ function drush_createcontent_create_node($node_type=null) {
 /**
  * Create a taxonomy term and return the tid.
  */
-function drush_createcontent_create_term($name=null, $vid=null) {
+function drush_createcontent_create_term($name=null, $vid=null, $quiet=false) {
   $term = new stdClass();
   $term->description = drush_get_option('description', null);
 
@@ -76,7 +76,7 @@ function drush_createcontent_create_term($name=null, $vid=null) {
       $vocabulary = taxonomy_vocabulary_machine_name_load($vid);
     }
     if (!$vocabulary) {
-      echo "There is no vocabulary with that name or that ID '$vid' in the system. ";
+      drush_log("There is no vocabulary with that name or that ID '$vid' in the system.", "warning");
       $vid = drush_prompt(dt('Please enter a valid vocabulary ID or a valid vocabulary machine name.'));
     }
   } while (!$vocabulary);
@@ -99,10 +99,10 @@ function drush_createcontent_create_term($name=null, $vid=null) {
     }
     return $term->tid;
   } else {
-    if (drush_get_option('auto', false)) {
+    if (drush_get_option('auto', false) && !$quiet) {
       echo $existing_term_id;
-    } elseif (!drush_get_option('quiet', false)) {
-        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #$existing_term_id.", 'ok');
+    } elseif (!drush_get_option('quiet', false) && !$quiet) {
+        drush_log("A term named " . $term->name . " already exists in vocabulary " . $vocabulary->name . ". It has tID #$existing_term_id.", 'warning');
     }
     return $existing_term_id;
   }
@@ -201,6 +201,8 @@ function createcontent_drush_command() {
       '$vocabulary_machine_name' => 'Specify a comma-separated list of term names or term IDs associated with the $vocabulary_machine_name',
       'references' => 'Specify a comma-separated list of entity reference field names for the new node',
       '$reference_node_id' => 'Specify a comma-separated list of node IDs associated with the entity $reference',
+      'file_references' => 'Specify a comma-separated list of field names which contain file references',
+      '$file_reference_field_values' => 'Specify a comma-separated, colon-delimited list of the paths to each file and their desired drupal URI, e.g.: --$my_file_field_name=$file_path:$file_uri,$file_field2:$file_uri2 etc.',
       'verbose'=> 'Pretty-print the new node\'s details',
       'auto' => 'Prints only the nID when run',
     ),

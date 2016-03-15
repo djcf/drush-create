@@ -76,13 +76,85 @@ class NodeFactory {
     return $node_values;
   }
 
-  function set_field_reference($field_name, $value) {
-    if (is_array($this->get_entity()->$field_name->raw()) && !is_array($value)) {
-      $value = array($value);
-    } elseif (!is_array($this->get_entity()->$field_name->raw()) && is_array($value)) {
-      $value = $value[0];
+  function set_field_reference($field_name, $value, $is_file = false) {
+    #echo PHP_EOL . "setting $field_name to $value". PHP_EOL;
+    if ($is_file) {
+      if (is_array($value)) {
+        $value = $value[0];
+      }
+      $file = $this->insert_complete_file($value);
+      if ($file) {
+
+        $this->get_entity()->$field_name->file->set($file);
+
+        file_usage_add($file, "entity", "node", $this->get_entity()->nid->value());
+
+        foreach (image_styles() as $style => $style_obj) {
+          $derivative_uri = image_style_path($style, $file->uri);
+          $success        = file_exists($derivative_uri) || image_style_create_derivative($style_obj, $file->uri, $derivative_uri);
+          if (!$success) {
+            drush_log("Could not create derivate image style $style for $drupalschemeuri in $derivative_uri", "warning");
+          }
+        }
+
+      } else {
+        drush_log("Could not set/update file field $field_name", "warning");
+      }
+    } else {
+      $this->get_entity()->$field_name->set($value);
     }
-    $this->get_entity()->$field_name->set($value);
+  }
+
+  function insert_complete_file($filevalues) {
+    $filemetamap = explode(":", $filevalues); #"/buildkit/build/CiviCRM/sites/default/files/migrate/$filename";
+    $filepath=$filemetamap[0];
+    $fileuri=$filemetamap[1];
+    $filename = basename($filepath);
+    $drupalschemeuri = "public://migrate/$filename";
+    #$drupalschemeuri = file_build_uri($filename);
+    try {
+      $filedata = file_get_contents($filepath);
+    } catch (Exception $e) {
+      drush_log("Could not open file $filepath", "error");
+      return null;
+    }
+    try {
+      $file_obj = file_save_data($filedata, $drupalschemeuri, FILE_EXISTS_REPLACE);
+    } catch (Exception $e) {
+      drush_log("Could not save file data: $e", "warning");
+    }
+    if (is_object($file_obj)) {
+      try {
+        $file_obj->status = FILE_STATUS_PERMANENT;
+        $file_obj->type = "image";
+        return file_save($file_obj);
+      } catch (Exception $e) {
+        drush_log("Could not save file metadata into drupal: $e", "warning");
+      }
+    }
+    return null;
+  }
+
+  function insert_file_reference($filevalues) {
+    $filemetamap = explode(":", $filevalues); #"/buildkit/build/CiviCRM/sites/default/files/migrate/$filename";
+    $filepath=$filemetamap[0];
+    $fileuri=$filemetamap[1];
+    $filename = basename($filepath);
+
+    $file = new stdClass();
+    $file->uri = $fileuri;
+    $file->filename = basename($filepath);
+    $file->filemime = file_get_mimetype($filepath);
+    $file->status = FILE_STATUS_PERMANENT;
+    $file->display = 1;
+    try {
+      $f = file_copy($file, "public://$filename");
+      $file_obj = file_save($file);
+    } catch (Exception $e) {
+      drush_log("Could not save file data into drupal", "warning");
+    }
+
+    return $file_obj;
   }
 }
 
@@ -92,13 +164,18 @@ class AutomatedNodeFactory extends NodeFactory {
       $terms = array();
       $vocabulary_map = explode(":", $vocabularystr);
       $field_name = $vocabulary_map[0];
+      $is_multi_field = is_array($this->get_entity()->$field_name->raw());
       $vocabulary_name = $vocabulary_map[1];
       foreach(drush_get_option_list($field_name, array()) as $term_identifier) {
         $term_id = is_numeric($term_identifier) ? $term_identifier : drush_createcontent_create_term(trim(urldecode($term_identifier)), $vocabulary_name, true);
         $terms[] = $term_id;
       }
       if(sizeof($terms)>0) {
-        $this->set_field_reference($field_name, $terms);
+        if ($is_multi_field) {
+          $this->set_field_reference($field_name, $terms);
+        } else {
+          $this->set_field_reference($field_name, $terms[0]);
+        }
       } else {
         drush_log("Could not find any terms for term reference field $field_name in supplied arguments.", "error");
         echo "Make sure a comma-separated list of terms from the taxonomy named '$vocabulary_name' is appended, like this: --$field_name=term1,term2,etc";
@@ -106,12 +183,34 @@ class AutomatedNodeFactory extends NodeFactory {
     }    
 
     foreach(drush_get_option_list('fields', array()) as $field_name) {
+      #echo "Getting $field_name";
       $fields = array();
+      $is_multi_field = is_array($this->get_entity()->$field_name->raw());
       foreach(drush_get_option_list($field_name, array()) as $field_value) {
         $fields[] = $field_value;
       }
       if (sizeof($fields)>0) {
-        $this->set_field_reference($field_name, $fields);
+        if ($is_multi_field) {
+          $this->set_field_reference($field_name, $fields);
+        } else {
+          $this->set_field_reference($field_name, $fields[0]);
+        }
+      }
+    }
+
+    foreach(drush_get_option_list('file_references', array()) as $field_name) {
+      #echo "*** Getting FILES $field_name ***";
+      $file_fields = array();
+      $is_multi_field = is_array($this->get_entity()->$field_name->raw());
+      foreach(drush_get_option_list($field_name, array()) as $field_value) {
+        $file_fields[] = $field_value;
+      }
+      if (sizeof($file_fields)>0) {
+        if ($is_multi_field) {
+          $this->set_field_reference($field_name, $file_fields, true);
+        } else {
+          $this->set_field_reference($field_name, $file_fields[0], true);
+        }
       }
     }
   }
