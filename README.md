@@ -4,6 +4,15 @@ Provides tools for creating arbitrary nodes, entities, terms and vocabularies wi
 
 # Installation
 
+Install as command extension in your local drush configuration
+
+    cd ~/.drush
+    git clone <this repository>
+
+# Installation (other)
+
+**Warning:** These instructions are outdated and do no longer work!
+
 Add the file to your site's module directory. For example:
 
     mkdir -p sites/all/drush
@@ -13,8 +22,16 @@ Or put it where drush will be able to find it for all sites:
 
     mkdir -p /usr/share/drush/commands
     curl "https://raw.githubusercontent.com/djcf/drush-create/master/create-content.drush.inc" > /usr/share/drush/commands/create-content.drush.inc
+    
 
-# Useage
+## Additional requirements
+
+The `create-content` command requires the drupal enitity module to be installed. You can easily install it by drush:
+
+    drush dl entity
+    drush en entity
+
+# Usage
 
 Create a vocabulary:
 
