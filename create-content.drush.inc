@@ -5,7 +5,7 @@ require_once('NodeFactory.php');
 /**
  * Create a taxonomy vocabulary and return the vid.
  */
-function drush_createcontent_create_vocabulary($name=null, $machine_name=null, $automate=false) {
+function drush_create_content_create_vocabulary($name=null, $machine_name=null, $automate=false) {
   $vocabulary = new stdClass();
   $vocabulary->description = drush_get_option('description', null);
 
@@ -38,7 +38,7 @@ function drush_createcontent_create_vocabulary($name=null, $machine_name=null, $
 /**
  * Create a taxonomy term and return the tid.
  */
-function drush_createcontent_create_node($node_type=null) {
+function drush_create_content_create_node($node_type=null) {
   $node = NodeFactory::get_node_wrapper($node_type);
   $node->save();
   fix_date($node->nid->value(), drush_get_option('created'), drush_get_option('created'));
@@ -57,7 +57,7 @@ function drush_createcontent_create_node($node_type=null) {
 /**
  * Create a taxonomy term and return the tid.
  */
-function drush_createcontent_create_term($name=null, $vid=null, $quiet=false) {
+function drush_create_content_create_term($name=null, $vid=null, $quiet=false) {
   $term = new stdClass();
   $term->description = drush_get_option('description', null);
 
@@ -108,7 +108,7 @@ function drush_createcontent_create_term($name=null, $vid=null, $quiet=false) {
   }
 }
 
-function drush_createcontent_get_empty_nids($limit=null) {
+function drush_create_content_get_empty_nids($limit=null) {
   if(!$limit) {
     $limit = drush_prompt(dt("Enter an upper limit"));
   }
@@ -121,10 +121,11 @@ function drush_createcontent_get_empty_nids($limit=null) {
   print_r($empties);
 }
 
+
 /**
  * Implements hook_drush_command().
  */
-function createcontent_drush_command() {
+function create_content_drush_command() {
   $items['create-term'] = array(
     'description' => 'Create a new taxonomy term given a name for the new term and a vocabulary ID. Returns the tID of the new term.',
     'aliases' => array('ctt'),
